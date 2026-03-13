@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "711733152496",
+    "project_id": "alozo-2633a",
+    "storage_bucket": "alozo-2633a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711733152496:android:bf0d95e472ec7294c51035",
+        "android_client_info": {
+          "package_name": "com.alonzo.alonzoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "711733152496-dc0fgup34qdlcr5ittp88lcvuccdspum.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alonzo.alonzoapp",
+            "certificate_hash": "821861402171257fde2f4d695492bbd8726043f8"
+          }
+        },
+        {
+          "client_id": "711733152496-67bsv5r49p4cr6crcu8jfiu7q7inhrg3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9u3HnqHpcGTPbYAhFxqGtf70ovMEBbOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "711733152496-67bsv5r49p4cr6crcu8jfiu7q7inhrg3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "711733152496-6jkh5obhhg9r550bh02dojv4qclei5qe.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.alonzo.alonzoapp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711733152496:android:6c1a308dab650a14c51035",
+        "android_client_info": {
+          "package_name": "com.example.alonzo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "711733152496-67bsv5r49p4cr6crcu8jfiu7q7inhrg3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9u3HnqHpcGTPbYAhFxqGtf70ovMEBbOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "711733152496-67bsv5r49p4cr6crcu8jfiu7q7inhrg3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "711733152496-6jkh5obhhg9r550bh02dojv4qclei5qe.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.alonzo.alonzoapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
