@@ -293,49 +293,117 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   }
 
   /// Confirma la orden y la guarda en Firestore a través del repositorio.
+  /// Sanitize text input to prevent injection.
+  String _sanitize(String input) {
+    return input.trim().replaceAll(RegExp(r'[<>{}]'), '');
+  }
+
   Future<void> placeOrder() async {
     state = state.copyWith(step: CheckoutStep.processing);
 
     try {
       final cartState = _cartNotifier.state;
-      final offerDiscount = cartState.totalSaved;
+
+      // ── 1. Validate stock and verify prices from Firestore ──
+      final db = FirebaseFirestore.instance;
+      final verifiedItems = <Map<String, dynamic>>[];
+      double verifiedSubtotal = 0;
+
+      for (final item in cartState.items) {
+        final productDoc = await db.collection('products').doc(item.productId).get();
+        if (!productDoc.exists) {
+          throw Exception('Producto "${item.productName}" ya no existe.');
+        }
+
+        final productData = productDoc.data()!;
+        final variants = productData['variants'] as List<dynamic>? ?? [];
+
+        // Find matching variant
+        final variant = variants.cast<Map<String, dynamic>>().firstWhere(
+          (v) => v['size'] == item.selectedSize && v['color'] == item.selectedColor,
+          orElse: () => throw Exception('Variante no encontrada para "${item.productName}" (${item.selectedSize}/${item.selectedColor}).'),
+        );
+
+        // Check stock
+        final stock = (variant['stock'] as num?)?.toInt() ?? 0;
+        if (stock < item.quantity) {
+          throw Exception('"${item.productName}" (${item.selectedSize}) solo tiene $stock unidades disponibles.');
+        }
+
+        // Use server price (not client price)
+        final serverPrice = (variant['price'] as num?)?.toDouble() ?? 0;
+        final offer = productData['offer'] as Map<String, dynamic>?;
+        double finalPrice = serverPrice;
+
+        if (offer != null && (offer['value'] as num?)?.toDouble() != null) {
+          final offerVal = (offer['value'] as num).toDouble();
+          if (offerVal > 0) {
+            final offerType = offer['type'] as String? ?? 'percentage';
+            if (offerType == 'percentage') {
+              finalPrice = serverPrice - (serverPrice * offerVal / 100);
+            } else {
+              finalPrice = (serverPrice - offerVal).clamp(0, double.infinity);
+            }
+          }
+        }
+
+        final variantIndex = variants.indexOf(variants.cast<Map<String, dynamic>>().firstWhere(
+          (v) => v['size'] == item.selectedSize && v['color'] == item.selectedColor,
+        ));
+
+        verifiedSubtotal += finalPrice * item.quantity;
+
+        verifiedItems.add({
+          'productId': item.productId,
+          'productName': _sanitize(item.productName),
+          'priceAtSale': serverPrice,
+          'quantity': item.quantity,
+          'variantIndex': variantIndex,
+          'variantLabel': '${item.selectedSize} / ${item.selectedColor}',
+          'discount': offer != null && (offer['value'] as num?)?.toDouble() != null && (offer['value'] as num).toDouble() > 0
+              ? {'type': offer['type'] ?? 'percentage', 'value': (offer['value'] as num).toDouble()}
+              : {'type': 'none', 'value': 0},
+          // Legacy compat
+          'titulo': _sanitize(item.productName),
+          'name': _sanitize(item.productName),
+          'price': serverPrice,
+          'qty': item.quantity,
+          'rowTotal': finalPrice * item.quantity,
+          'size': item.selectedSize,
+          'color': item.selectedColor,
+          'img': item.imageUrl,
+        });
+      }
+
+      // ── 2. Recalculate totals with verified prices ──
+      final offerDiscount = cartState.items.fold<double>(0, (sum, item) {
+        // Recalculate based on server prices
+        return sum; // offer discount is already factored into verifiedSubtotal
+      });
       final effectiveDeliveryCost = state.couponFreeShipping ? 0.0 : state.deliveryCostUsd;
-      final total = cartState.total - state.couponDiscount + effectiveDeliveryCost;
+      final total = verifiedSubtotal - state.couponDiscount + effectiveDeliveryCost;
+      final totalDiscount = state.couponDiscount;
 
-      final items = cartState.items.map((item) => {
-            'productId': item.productId,
-            'productName': item.productName,
-            'priceAtSale': item.price,
-            'quantity': item.quantity,
-            'variantIndex': 0,
-            'variantLabel': '${item.selectedSize} / ${item.selectedColor}',
-            'discount': item.hasOffer
-                ? {'type': item.offerType, 'value': item.offerValue}
-                : {'type': 'none', 'value': 0},
-            // Legacy compat
-            'titulo': item.productName,
-            'name': item.productName,
-            'price': item.price,
-            'qty': item.quantity,
-            'rowTotal': item.subtotal,
-            'size': item.selectedSize,
-            'color': item.selectedColor,
-            'img': item.imageUrl,
-          }).toList();
+      // ── 3. Sanitize client data ──
+      final sanitizedClient = ClientSnapshot(
+        name: _sanitize(state.client.name),
+        address: _sanitize(state.client.address),
+        phone: state.client.phone.replaceAll(RegExp(r'[^0-9+]'), ''),
+        rifCi: state.client.rifCi.replaceAll(RegExp(r'[^0-9a-zA-Z-]'), ''),
+      );
 
-      final totalDiscount = offerDiscount + state.couponDiscount;
-
+      // ── 4. Build and save invoice ──
       final invoiceData = {
         'abonos': [],
         'changeGiven': 0,
-        'clientSnapshot': state.client.toMap(),
+        'clientSnapshot': sanitizedClient.toMap(),
         'date': FieldValue.serverTimestamp(),
         'deliveryCostUsd': effectiveDeliveryCost,
         'deliveryPaidInStore': state.deliveryType == DeliveryType.pickup,
         'deliveryType': state.deliveryType.value,
         'exchangeRate': state.exchangeRate,
-        'items': items,
-        'observation': state.observation,
+        'items': verifiedItems,
+        'observation': _sanitize(state.observation),
         'payments': [
           {
             'amountUsd': total,
@@ -350,7 +418,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
         'totalDiscount': totalDiscount > 0
             ? {'type': state.hasCoupon ? 'coupon' : 'offer', 'value': totalDiscount}
             : {'type': 'none', 'value': 0},
-        'offerDiscount': offerDiscount,
+        'offerDiscount': (cartState.totalWithoutDiscounts - verifiedSubtotal).clamp(0, double.infinity),
         if (state.hasCoupon)
           'appliedCoupon': {
             'couponId': state.couponId,

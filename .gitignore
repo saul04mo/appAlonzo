@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Security: sensitive Firebase files ──
+# google-services.json is already tracked — run:
+#   git rm --cached android/app/google-services.json
+#   git commit -m "chore: stop tracking google-services.json"
+# to remove from git history
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+key.properties
+*.keystore
+*.jks
+.env
+.env.*

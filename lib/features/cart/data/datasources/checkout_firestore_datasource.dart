@@ -25,27 +25,30 @@ class CheckoutFirestoreDataSource {
     return 0;
   }
 
-  /// Guarda la factura en Firestore usando transacción para numericId único.
+  /// Guarda la factura en Firestore usando transacción atómica.
   /// Retorna (orderId, numericId).
   Future<({String orderId, int numericId})> placeOrder(
       Map<String, dynamic> invoiceData) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Usuario no autenticado');
 
+    // Add clientId to the invoice
+    invoiceData['clientId'] = user.uid;
+    invoiceData['clientEmail'] = user.email ?? '';
+
     final invoiceRef = _firestore.collection('invoices').doc();
+    final counterRef = _firestore.collection('config').doc('orderCounter');
 
     final numericId = await _firestore.runTransaction<int>((tx) async {
-      final query = await _firestore
-          .collection('invoices')
-          .orderBy('numericId', descending: true)
-          .limit(1)
-          .get();
-
-      final lastId = query.docs.isEmpty
-          ? 0
-          : (query.docs.first.data()['numericId'] as int? ?? 0);
+      // Read counter inside the transaction (atomic)
+      final counterSnap = await tx.get(counterRef);
+      final lastId = counterSnap.exists
+          ? (counterSnap.data()?['value'] as int? ?? 0)
+          : 0;
       final nextId = lastId + 1;
 
+      // Write both atomically
+      tx.set(counterRef, {'value': nextId});
       tx.set(invoiceRef, {...invoiceData, 'numericId': nextId});
       return nextId;
     });
