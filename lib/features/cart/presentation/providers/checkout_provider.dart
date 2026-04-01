@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/providers.dart';
 
@@ -393,7 +394,11 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       );
 
       // ── 4. Build and save invoice ──
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUid == null) throw Exception('No estás autenticado.');
+
       final invoiceData = {
+        'clientId': currentUid,
         'abonos': [],
         'changeGiven': 0,
         'clientSnapshot': sanitizedClient.toMap(),
