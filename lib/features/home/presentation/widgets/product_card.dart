@@ -39,7 +39,7 @@ class ProductCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Imagen + corazón ─────────────────────────────
+          // ── Imagen + corazón + offer badge ─────────────────
           AspectRatio(
             aspectRatio: 3 / 4,
             child: Stack(
@@ -67,6 +67,31 @@ class ProductCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+                // ── Badge de oferta ──
+                if (product.hasOffer)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade700,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Text(
+                        product.offer!.type == 'percentage'
+                            ? '-${product.offer!.value.toStringAsFixed(0)}%'
+                            : '-\$${product.offer!.value.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 // ── Botón de favorito ──
                 Positioned(
@@ -118,12 +143,35 @@ class ProductCard extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
 
-          Text(
-            _currencyFormat.format(product.minPrice),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w500,
+          // ── Precio con oferta ──
+          if (product.hasOffer) ...[
+            Row(
+              children: [
+                Text(
+                  _currencyFormat.format(product.minDiscountedPrice),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _currencyFormat.format(product.minPrice),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    decoration: TextDecoration.lineThrough,
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
-          ),
+          ] else
+            Text(
+              _currencyFormat.format(product.minPrice),
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
         ],
       ),
     );

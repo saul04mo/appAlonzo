@@ -76,11 +76,27 @@ class CartScreen extends ConsumerWidget {
                         children: [
                           Text('Subtotal', style: theme.textTheme.bodyMedium),
                           Text(
-                            _currencyFormat.format(cartState.total),
+                            _currencyFormat.format(cartState.totalWithoutDiscounts),
                             style: theme.textTheme.titleSmall,
                           ),
                         ],
                       ),
+                      if (cartState.totalSaved > 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Ofertas', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red.shade700)),
+                            Text(
+                              '- ${_currencyFormat.format(cartState.totalSaved)}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,13 +162,37 @@ class _CartItemTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen
+          // Imagen + offer badge
           SizedBox(
             width: 100,
             height: 140,
-            child: CachedNetworkImage(
-              imageUrl: item.imageUrl,
-              fit: BoxFit.cover,
+            child: Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: item.imageUrl,
+                  fit: BoxFit.cover,
+                  width: 100,
+                  height: 140,
+                ),
+                if (item.hasOffer)
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade700,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Text(
+                        item.offerType == 'percentage'
+                            ? '-${item.offerValue.toStringAsFixed(0)}%'
+                            : '-\$${item.offerValue.toStringAsFixed(0)}',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 16),
@@ -176,12 +216,35 @@ class _CartItemTile extends ConsumerWidget {
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  _currencyFormat.format(item.price),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w500,
+                // Price with offer
+                if (item.hasOffer)
+                  Row(
+                    children: [
+                      Text(
+                        _currencyFormat.format(item.discountedPrice),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _currencyFormat.format(item.price),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          decoration: TextDecoration.lineThrough,
+                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    _currencyFormat.format(item.price),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 12),
 
                 // Controles de cantidad

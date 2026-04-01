@@ -19,6 +19,7 @@ class ProductModel {
       gender: data['gender'] as String? ?? '',
       imageUrl: data['imageUrl'] as String? ?? '',
       variants: _parseVariants(data['variants']),
+      offer: _parseOffer(data['offer']),
     );
   }
 
@@ -38,6 +39,8 @@ class ProductModel {
                 'stock': v.stock,
               })
           .toList(),
+      if (product.offer != null)
+        'offer': {'type': product.offer!.type, 'value': product.offer!.value},
     };
   }
 
@@ -54,5 +57,17 @@ class ProductModel {
         stock: (map['stock'] as num?)?.toInt() ?? 0,
       );
     }).toList();
+  }
+
+  /// Parsea la oferta del producto.
+  static OfferEntity? _parseOffer(dynamic raw) {
+    if (raw == null || raw is! Map) return null;
+    final map = raw as Map<String, dynamic>;
+    final value = (map['value'] as num?)?.toDouble() ?? 0;
+    if (value <= 0) return null;
+    return OfferEntity(
+      type: map['type'] as String? ?? 'percentage',
+      value: value,
+    );
   }
 }

@@ -61,6 +61,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             : null;
 
         final displayPrice = selectedVariant?.price ?? product.minPrice;
+        final discountedDisplayPrice = product.discountedPrice(displayPrice);
         final hasStock =
             selectedVariant?.stock != null && selectedVariant!.stock > 0;
 
@@ -115,20 +116,47 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
               // ── Imagen del producto ─────────────────────
               SliverToBoxAdapter(
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: CachedNetworkImage(
-                    imageUrl: product.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) =>
-                        Container(color: const Color(0xFFF5F5F5)),
-                    errorWidget: (_, __, ___) => Container(
-                      color: const Color(0xFFF5F5F5),
-                      child: const Center(
-                        child: Icon(Icons.image_outlined, size: 48),
+                child: Stack(
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 3 / 4,
+                      child: CachedNetworkImage(
+                        imageUrl: product.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) =>
+                            Container(color: const Color(0xFFF5F5F5)),
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFFF5F5F5),
+                          child: const Center(
+                            child: Icon(Icons.image_outlined, size: 48),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    if (product.hasOffer)
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade700,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            product.offer!.type == 'percentage'
+                                ? '-${product.offer!.value.toStringAsFixed(0)}% OFF'
+                                : '-\$${product.offer!.value.toStringAsFixed(0)} OFF',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -300,6 +328,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     selectedColor: _selectedColor ?? '',
                                     price: selectedVariant.price,
                                     barcode: selectedVariant.barcode,
+                                    offerType: product.offer?.type ?? '',
+                                    offerValue: product.offer?.value ?? 0,
                                   ),
                                 );
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -320,11 +350,33 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Precio
-                Text(
-                  _currencyFormat.format(displayPrice),
-                  style: theme.textTheme.titleLarge,
-                ),
+                // Precio (con oferta si aplica)
+                if (product.hasOffer)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _currencyFormat.format(discountedDisplayPrice),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        _currencyFormat.format(displayPrice),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          decoration: TextDecoration.lineThrough,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    _currencyFormat.format(displayPrice),
+                    style: theme.textTheme.titleLarge,
+                  ),
               ],
             ),
           ),

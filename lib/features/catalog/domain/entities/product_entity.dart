@@ -18,6 +18,18 @@ abstract class ProductVariantEntity with _$ProductVariantEntity {
       _$ProductVariantEntityFromJson(json);
 }
 
+/// Oferta aplicada a un producto desde el POS.
+@freezed
+abstract class OfferEntity with _$OfferEntity {
+  const factory OfferEntity({
+    @Default('percentage') String type, // 'percentage' | 'fixed'
+    @Default(0) double value,
+  }) = _OfferEntity;
+
+  factory OfferEntity.fromJson(Map<String, dynamic> json) =>
+      _$OfferEntityFromJson(json);
+}
+
 /// Entidad de dominio para un Producto.
 @freezed
 abstract class ProductEntity with _$ProductEntity {
@@ -30,16 +42,32 @@ abstract class ProductEntity with _$ProductEntity {
     required String gender,
     required String imageUrl,
     @Default([]) List<ProductVariantEntity> variants,
+    OfferEntity? offer,
   }) = _ProductEntity;
 
   factory ProductEntity.fromJson(Map<String, dynamic> json) =>
       _$ProductEntityFromJson(json);
+
+  /// Tiene oferta activa.
+  bool get hasOffer => offer != null && offer!.value > 0;
+
+  /// Calcula el precio con descuento.
+  double discountedPrice(double originalPrice) {
+    if (!hasOffer) return originalPrice;
+    if (offer!.type == 'percentage') {
+      return originalPrice - (originalPrice * offer!.value / 100);
+    }
+    return (originalPrice - offer!.value).clamp(0, double.infinity);
+  }
 
   /// Precio mínimo entre todas las variantes.
   double get minPrice {
     if (variants.isEmpty) return 0;
     return variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
   }
+
+  /// Precio mínimo con descuento aplicado.
+  double get minDiscountedPrice => discountedPrice(minPrice);
 
   /// Precio máximo entre todas las variantes.
   double get maxPrice {

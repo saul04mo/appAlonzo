@@ -51,6 +51,10 @@ class FirestorePaths {
   static const String orders = 'orders';
   static const String cartItems = 'cartItems';
   static const String wishlist = 'wishlist';
+  static const String coupons = 'coupons';
+  static const String promotions = 'promotions';
+  static const String invoices = 'invoices';
+  static const String clients = 'clients';
 }
 
 /// Enumeración de género para filtrado.
