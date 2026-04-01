@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../providers/banner_provider.dart';
 import '../widgets/product_card.dart';
+import '../widgets/promotions_banner.dart';
 
 /// Pantalla principal — Home.
 ///
@@ -232,6 +233,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
+
+          // ── Promociones activas ───────────────────────
+          const SliverToBoxAdapter(child: PromotionsBanner()),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
           // ── Sección: En tendencia ───────────────────────
           SliverToBoxAdapter(

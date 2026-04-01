@@ -72,6 +72,13 @@ class CheckoutState {
   final String? orderId;
   final int? numericId;
   final String? errorMessage;
+  // ── Coupon ──
+  final String? couponCode;
+  final String? couponId;
+  final double couponDiscount;
+  final String couponDescription;
+  final bool couponFreeShipping;
+  final String? couponError;
 
   const CheckoutState({
     this.step = CheckoutStep.address,
@@ -84,7 +91,15 @@ class CheckoutState {
     this.orderId,
     this.numericId,
     this.errorMessage,
+    this.couponCode,
+    this.couponId,
+    this.couponDiscount = 0,
+    this.couponDescription = '',
+    this.couponFreeShipping = false,
+    this.couponError,
   });
+
+  bool get hasCoupon => couponCode != null && couponDiscount > 0;
 
   CheckoutState copyWith({
     CheckoutStep? step,
@@ -97,6 +112,12 @@ class CheckoutState {
     String? orderId,
     int? numericId,
     String? errorMessage,
+    String? couponCode,
+    String? couponId,
+    double? couponDiscount,
+    String? couponDescription,
+    bool? couponFreeShipping,
+    String? couponError,
   }) {
     return CheckoutState(
       step: step ?? this.step,
@@ -109,6 +130,12 @@ class CheckoutState {
       orderId: orderId ?? this.orderId,
       numericId: numericId ?? this.numericId,
       errorMessage: errorMessage,
+      couponCode: couponCode ?? this.couponCode,
+      couponId: couponId ?? this.couponId,
+      couponDiscount: couponDiscount ?? this.couponDiscount,
+      couponDescription: couponDescription ?? this.couponDescription,
+      couponFreeShipping: couponFreeShipping ?? this.couponFreeShipping,
+      couponError: couponError,
     );
   }
 }
@@ -161,6 +188,94 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   void updateObservation(String obs) =>
       state = state.copyWith(observation: obs);
 
+  /// Validate and apply a coupon code.
+  Future<void> applyCoupon(String code, double subtotal) async {
+    final trimmed = code.toUpperCase().trim();
+    if (trimmed.isEmpty) return;
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('coupons')
+          .where('code', isEqualTo: trimmed)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty) {
+        state = state.copyWith(couponError: 'Cupón no encontrado.');
+        return;
+      }
+
+      final doc = snap.docs.first;
+      final data = doc.data();
+
+      if (data['active'] != true) {
+        state = state.copyWith(couponError: 'Este cupón está desactivado.');
+        return;
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final startsAt = data['startsAt'] as Timestamp?;
+      final expiresAt = data['expiresAt'] as Timestamp?;
+      if (startsAt != null && startsAt.millisecondsSinceEpoch > now) {
+        state = state.copyWith(couponError: 'Este cupón aún no está vigente.');
+        return;
+      }
+      if (expiresAt != null && expiresAt.millisecondsSinceEpoch < now) {
+        state = state.copyWith(couponError: 'Este cupón ha expirado.');
+        return;
+      }
+
+      final maxTotal = (data['maxUsesTotal'] as num?)?.toInt() ?? 0;
+      final usedCount = (data['usedCount'] as num?)?.toInt() ?? 0;
+      if (maxTotal > 0 && usedCount >= maxTotal) {
+        state = state.copyWith(couponError: 'Este cupón alcanzó su límite de usos.');
+        return;
+      }
+
+      final minPurchase = (data['minPurchase'] as num?)?.toDouble() ?? 0;
+      if (minPurchase > 0 && subtotal < minPurchase) {
+        state = state.copyWith(couponError: 'Compra mínima de \$${minPurchase.toStringAsFixed(2)} requerida.');
+        return;
+      }
+
+      // Calculate discount
+      final discountType = data['discountType'] as String? ?? 'percentage';
+      final discountValue = (data['discountValue'] as num?)?.toDouble() ?? 0;
+      double discount = 0;
+      if (discountType == 'percentage') {
+        discount = (subtotal * discountValue) / 100;
+      } else {
+        discount = discountValue.clamp(0, subtotal);
+      }
+
+      final desc = discountType == 'percentage'
+          ? '${discountValue.toStringAsFixed(0)}% de descuento'
+          : '\$${discountValue.toStringAsFixed(2)} de descuento';
+
+      state = state.copyWith(
+        couponCode: data['code'] as String,
+        couponId: doc.id,
+        couponDiscount: (discount * 100).round() / 100,
+        couponDescription: desc,
+        couponFreeShipping: data['freeShipping'] == true,
+        couponError: null,
+      );
+    } catch (e) {
+      state = state.copyWith(couponError: 'Error al validar cupón.');
+    }
+  }
+
+  void removeCoupon() {
+    state = state.copyWith(
+      couponCode: null,
+      couponId: null,
+      couponDiscount: 0,
+      couponDescription: '',
+      couponFreeShipping: false,
+      couponError: null,
+    );
+  }
+
   void goToPayment() {
     if (state.client.isValid) {
       state = state.copyWith(step: CheckoutStep.payment);
@@ -183,21 +298,39 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
 
     try {
       final cartState = _cartNotifier.state;
-      final total = cartState.total + state.deliveryCostUsd;
+      final offerDiscount = cartState.totalSaved;
+      final effectiveDeliveryCost = state.couponFreeShipping ? 0.0 : state.deliveryCostUsd;
+      final total = cartState.total - state.couponDiscount + effectiveDeliveryCost;
 
       final items = cartState.items.map((item) => {
             'productId': item.productId,
+            'productName': item.productName,
+            'priceAtSale': item.price,
             'quantity': item.quantity,
             'variantIndex': 0,
-            'discount': {'type': 'none', 'value': 0},
+            'variantLabel': '${item.selectedSize} / ${item.selectedColor}',
+            'discount': item.hasOffer
+                ? {'type': item.offerType, 'value': item.offerValue}
+                : {'type': 'none', 'value': 0},
+            // Legacy compat
+            'titulo': item.productName,
+            'name': item.productName,
+            'price': item.price,
+            'qty': item.quantity,
+            'rowTotal': item.subtotal,
+            'size': item.selectedSize,
+            'color': item.selectedColor,
+            'img': item.imageUrl,
           }).toList();
+
+      final totalDiscount = offerDiscount + state.couponDiscount;
 
       final invoiceData = {
         'abonos': [],
         'changeGiven': 0,
         'clientSnapshot': state.client.toMap(),
         'date': FieldValue.serverTimestamp(),
-        'deliveryCostUsd': state.deliveryCostUsd,
+        'deliveryCostUsd': effectiveDeliveryCost,
         'deliveryPaidInStore': state.deliveryType == DeliveryType.pickup,
         'deliveryType': state.deliveryType.value,
         'exchangeRate': state.exchangeRate,
@@ -211,13 +344,35 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
           }
         ],
         'sellerName': 'App ALONZO',
+        'sellerUid': 'APP',
         'status': 'Creada',
         'total': total,
-        'totalDiscount': {'type': 'none', 'value': 0},
+        'totalDiscount': totalDiscount > 0
+            ? {'type': state.hasCoupon ? 'coupon' : 'offer', 'value': totalDiscount}
+            : {'type': 'none', 'value': 0},
+        'offerDiscount': offerDiscount,
+        if (state.hasCoupon)
+          'appliedCoupon': {
+            'couponId': state.couponId,
+            'code': state.couponCode,
+            'discountAmount': state.couponDiscount,
+            'description': state.couponDescription,
+            'freeShipping': state.couponFreeShipping,
+          },
+        'appliedPromotions': [],
       };
 
       final result = await _repo.placeOrder(invoiceData);
       if (!mounted) return;
+
+      // Record coupon usage
+      if (state.hasCoupon && state.couponId != null) {
+        try {
+          await FirebaseFirestore.instance.collection('coupons').doc(state.couponId).update({
+            'usedCount': FieldValue.increment(1),
+          });
+        } catch (_) {}
+      }
 
       _cartNotifier.clearCart();
       state = state.copyWith(

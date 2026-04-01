@@ -99,9 +99,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final isDelivery = _deliveryMethod == 'Envío a domicilio';
-    final deliveryCost = isDelivery ? checkoutState.deliveryCostUsd : 0.0;
-    final subtotal = cartState.total;
-    final total = subtotal + deliveryCost;
+    final deliveryCost = checkoutState.couponFreeShipping ? 0.0 :
+        (isDelivery ? checkoutState.deliveryCostUsd : 0.0);
+    final subtotal = cartState.total; // already includes offer discounts
+    final offerSaved = cartState.totalSaved;
+    final couponDiscount = checkoutState.couponDiscount;
+    final total = subtotal - couponDiscount + deliveryCost;
     final rate = checkoutState.exchangeRate;
     final totalBs = rate > 0 ? total * rate : 0.0;
 
@@ -308,6 +311,107 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                     const SizedBox(height: 28),
 
+                    // ── Cupón de descuento ─────────────────
+                    Text(
+                      'CUPÓN DE DESCUENTO',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF616161),
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (checkoutState.hasCoupon)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle, size: 18, color: Color(0xFF16A34A)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    checkoutState.couponCode!,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF15803D),
+                                    ),
+                                  ),
+                                  Text(
+                                    checkoutState.couponDescription,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: const Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18, color: Color(0xFF86EFAC)),
+                              onPressed: () => ref.read(checkoutProvider.notifier).removeCoupon(),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              decoration: InputDecoration(
+                                hintText: 'CÓDIGO DE CUPÓN',
+                                prefixIcon: const Icon(Icons.local_offer_outlined, size: 18),
+                                hintStyle: theme.textTheme.bodySmall?.copyWith(letterSpacing: 1),
+                                border: const UnderlineInputBorder(),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                              textCapitalization: TextCapitalization.characters,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontFamily: 'monospace',
+                                letterSpacing: 2,
+                              ),
+                              onFieldSubmitted: (val) {
+                                if (val.trim().isNotEmpty) {
+                                  ref.read(checkoutProvider.notifier).applyCoupon(val, subtotal);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Get value from text field — user submits via keyboard
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                              ),
+                              child: const Text('APLICAR', style: TextStyle(fontSize: 11, letterSpacing: 1)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (checkoutState.couponError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          checkoutState.couponError!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 28),
+
                     // ── Desglose de precios ────────────────
                     Container(
                       width: double.infinity,
@@ -320,21 +424,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         children: [
                           _PriceRow(
                             label: 'SUBTOTAL PRODUCTOS:',
-                            value: _currency.format(subtotal),
+                            value: _currency.format(cartState.totalWithoutDiscounts),
                           ),
-                          const SizedBox(height: 6),
-                          _PriceRow(
-                            label: 'DESCUENTO:',
-                            value: '- \$0.00',
-                            valueColor: const Color(0xFFB00020),
-                            labelColor: const Color(0xFFB00020),
-                          ),
+                          if (offerSaved > 0) ...[
+                            const SizedBox(height: 6),
+                            _PriceRow(
+                              label: 'OFERTAS:',
+                              value: '- ${_currency.format(offerSaved)}',
+                              valueColor: const Color(0xFFB00020),
+                              labelColor: const Color(0xFFB00020),
+                            ),
+                          ],
+                          if (couponDiscount > 0) ...[
+                            const SizedBox(height: 6),
+                            _PriceRow(
+                              label: 'CUPÓN ${checkoutState.couponCode ?? ''}:',
+                              value: '- ${_currency.format(couponDiscount)}',
+                              valueColor: const Color(0xFF16A34A),
+                              labelColor: const Color(0xFF16A34A),
+                            ),
+                          ],
                           const SizedBox(height: 6),
                           _PriceRow(
                             label: 'COSTO ENVÍO:',
-                            value: deliveryCost > 0
-                                ? _currency.format(deliveryCost)
-                                : '\$ 0.00',
+                            value: checkoutState.couponFreeShipping
+                                ? 'GRATIS 🎉'
+                                : (deliveryCost > 0 ? _currency.format(deliveryCost) : '\$ 0.00'),
                           ),
                           const SizedBox(height: 6),
                           _PriceRow(label: 'TOTAL PAGADO:', value: '\$ 0.00'),
