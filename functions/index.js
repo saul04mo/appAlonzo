@@ -23,15 +23,16 @@
  * - Decrements stock for each item purchased
  */
 
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const functions = require("firebase-functions");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { initializeApp } = require("firebase-admin/app");
 
 initializeApp();
 const db = getFirestore();
 
-exports.validateOrder = onDocumentCreated("invoices/{invoiceId}", async (event) => {
-  const snap = event.data;
+exports.validateOrder = functions.firestore
+  .document("invoices/{invoiceId}")
+  .onCreate(async (snap, context) => {
   if (!snap) return;
 
   const invoice = snap.data();
