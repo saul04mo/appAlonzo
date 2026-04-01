@@ -6,6 +6,7 @@ import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../cart/presentation/providers/checkout_provider.dart';
 import '../../../auth/domain/entities/user_profile_entity.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
+import '../widgets/address_picker_sheet.dart';
 
 /// Pantalla única de Resumen de Compra.
 ///
@@ -29,6 +30,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  final _couponCtrl = TextEditingController();
 
   String _deliveryMethod = 'Retiro en tienda (GRATIS)';
   String? _selectedPayment;
@@ -37,6 +39,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _orderId;
   int? _numericId;
   bool _profilePopulated = false;
+  double? _selectedLat;
+  double? _selectedLng;
 
   static const _deliveryOptions = [
     'Retiro en tienda (GRATIS)',
@@ -64,6 +68,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
+    _couponCtrl.dispose();
     super.dispose();
   }
 
@@ -163,44 +168,90 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ── Dirección de entrega ───────────────
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined, size: 16),
-                              const SizedBox(width: 6),
+                    // ── Dirección de entrega (con mapa) ───
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await AddressPickerSheet.show(
+                          context,
+                          initialAddress: _addressCtrl.text,
+                          initialLat: _selectedLat,
+                          initialLng: _selectedLng,
+                        );
+                        if (result != null) {
+                          setState(() {
+                            _addressCtrl.text = result.address;
+                            _selectedLat = result.latitude;
+                            _selectedLng = result.longitude;
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: _addressCtrl.text.isNotEmpty
+                                ? Colors.black
+                                : const Color(0xFFE0E0E0),
+                            width: _addressCtrl.text.isNotEmpty ? 1.5 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _addressCtrl.text.isNotEmpty
+                                      ? Icons.check_circle
+                                      : Icons.location_on_outlined,
+                                  size: 16,
+                                  color: _addressCtrl.text.isNotEmpty
+                                      ? const Color(0xFF16A34A)
+                                      : null,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'DIRECCIÓN DE ENTREGA',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.map_outlined,
+                                  size: 16,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _addressCtrl.text.isNotEmpty
+                                  ? _addressCtrl.text
+                                  : 'Toca para abrir el mapa y seleccionar tu dirección',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: _addressCtrl.text.isNotEmpty
+                                    ? Colors.black87
+                                    : Colors.grey.shade500,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_selectedLat != null && _selectedLng != null) ...[
+                              const SizedBox(height: 6),
                               Text(
-                                'DIRECCIÓN DE ENTREGA',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                '${_selectedLat!.toStringAsFixed(4)}, ${_selectedLng!.toStringAsFixed(4)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade400,
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _addressCtrl,
-                            maxLines: 2,
-                            decoration: const InputDecoration(
-                              hintText: 'CONFIRMA TU DIRECCIÓN AQUÍ...',
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              isDense: true,
-                            ),
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
 
@@ -364,6 +415,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         children: [
                           Expanded(
                             child: TextFormField(
+                              controller: _couponCtrl,
                               decoration: InputDecoration(
                                 hintText: 'CÓDIGO DE CUPÓN',
                                 prefixIcon: const Icon(Icons.local_offer_outlined, size: 18),
@@ -388,7 +440,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             height: 40,
                             child: ElevatedButton(
                               onPressed: () {
-                                // Get value from text field — user submits via keyboard
+                                final code = _couponCtrl.text.trim();
+                                if (code.isNotEmpty) {
+                                  ref.read(checkoutProvider.notifier).applyCoupon(code, subtotal);
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),

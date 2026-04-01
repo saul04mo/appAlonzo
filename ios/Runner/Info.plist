@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ALONZO necesita tu ubicación para calcular el costo de envío y mostrarte el mapa de entrega.</string>
 </dict>
 </plist>
