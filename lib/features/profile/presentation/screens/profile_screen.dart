@@ -137,6 +137,16 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => context.push('/orders'),
           ),
           _ProfileMenuItem(
+            icon: Icons.favorite_outline_rounded,
+            label: 'Mis favoritos',
+            onTap: () => context.go('/wishlist'),
+          ),
+          _ProfileMenuItem(
+            icon: Icons.local_offer_outlined,
+            label: 'Mis cupones',
+            onTap: () => context.push('/my-coupons'),
+          ),
+          _ProfileMenuItem(
             icon: Icons.shield_outlined,
             label: 'Detalles y seguridad',
             onTap: () {},

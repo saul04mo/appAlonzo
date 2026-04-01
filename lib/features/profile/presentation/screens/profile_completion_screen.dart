@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../routing/app_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/domain/entities/user_profile_entity.dart';
@@ -170,6 +171,52 @@ class _ProfileCompletionScreenState
               );
             }
             return;
+          }
+
+          // ── Migrar facturas del cliente POS al nuevo UID ──
+          try {
+            final oldClientId = existing['id'] as String;
+            final invoicesSnap = await FirebaseFirestore.instance
+                .collection('invoices')
+                .where('clientId', isEqualTo: oldClientId)
+                .get();
+
+            if (invoicesSnap.docs.isNotEmpty) {
+              final batch = FirebaseFirestore.instance.batch();
+              for (final invDoc in invoicesSnap.docs) {
+                batch.update(invDoc.reference, {
+                  'clientId': currentUid,
+                  'linkedFromPOS': oldClientId,
+                });
+              }
+              await batch.commit();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.link, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '¡Perfil vinculado! ${invoicesSnap.docs.length} pedidos anteriores encontrados.',
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.black87,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
+          } catch (_) {
+            // Si falla la migración, continuar con el guardado
           }
         }
       } catch (_) {

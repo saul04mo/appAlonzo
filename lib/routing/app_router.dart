@@ -15,6 +15,7 @@ import '../features/home/presentation/screens/home_screen.dart';
 import '../features/profile/presentation/screens/profile_completion_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/profile/presentation/screens/orders_screen.dart';
+import '../features/profile/presentation/screens/my_coupons_screen.dart';
 import '../features/wishlist/presentation/screens/wishlist_screen.dart';
 
 /// Nombres de rutas para navegación type-safe.
@@ -175,6 +176,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.orders,
         name: 'orders',
         builder: (context, state) => const OrdersScreen(),
+      ),
+      GoRoute(
+        path: '/my-coupons',
+        name: 'myCoupons',
+        builder: (context, state) => const MyCouponsScreen(),
       ),
 
       // ── Completar perfil con transición slide up ──────
