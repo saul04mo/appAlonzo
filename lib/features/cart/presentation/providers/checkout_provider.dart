@@ -151,6 +151,7 @@ class CheckoutState {
 class CheckoutNotifier extends StateNotifier<CheckoutState> {
   final CheckoutRepository _repo;
   final CartNotifier _cartNotifier;
+  DateTime? _lastOrderTime;
 
   CheckoutNotifier(this._repo, this._cartNotifier)
       : super(const CheckoutState()) {
@@ -300,6 +301,16 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   }
 
   Future<void> placeOrder() async {
+    // ── Rate limiting: 30 second cooldown between orders ──
+    if (_lastOrderTime != null &&
+        DateTime.now().difference(_lastOrderTime!).inSeconds < 30) {
+      state = state.copyWith(
+        step: CheckoutStep.error,
+        errorMessage: 'Espera unos segundos antes de hacer otro pedido.',
+      );
+      return;
+    }
+
     state = state.copyWith(step: CheckoutStep.processing);
 
     try {
@@ -448,6 +459,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       }
 
       _cartNotifier.clearCart();
+      _lastOrderTime = DateTime.now();
       state = state.copyWith(
         step: CheckoutStep.confirmed,
         orderId: result.orderId,

@@ -1,1 +1,32 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"alozo-2633a","appId":"1:711733152496:android:bf0d95e472ec7294c51035","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"alozo-2633a","configurations":{"android":"1:711733152496:android:bf0d95e472ec7294c51035","ios":"1:711733152496:ios:0c5178bc9b6ffc09c51035"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git"]
+    }
+  ],
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "alozo-2633a",
+          "appId": "1:711733152496:android:bf0d95e472ec7294c51035",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "alozo-2633a",
+          "configurations": {
+            "android": "1:711733152496:android:bf0d95e472ec7294c51035",
+            "ios": "1:711733152496:ios:0c5178bc9b6ffc09c51035"
+          }
+        }
+      }
+    }
+  }
+}
