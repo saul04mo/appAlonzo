@@ -267,7 +267,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      initialValue: _deliveryMethod,
+                      value: _deliveryMethod,
                       decoration: const InputDecoration(
                         border: UnderlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(vertical: 8),
