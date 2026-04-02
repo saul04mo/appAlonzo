@@ -288,9 +288,277 @@ as int,
 
 
 /// @nodoc
+mixin _$OfferEntity {
+
+ String get type;// 'percentage' | 'fixed'
+ double get value;
+/// Create a copy of OfferEntity
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OfferEntityCopyWith<OfferEntity> get copyWith => _$OfferEntityCopyWithImpl<OfferEntity>(this as OfferEntity, _$identity);
+
+  /// Serializes this OfferEntity to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OfferEntity&&(identical(other.type, type) || other.type == type)&&(identical(other.value, value) || other.value == value));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,value);
+
+@override
+String toString() {
+  return 'OfferEntity(type: $type, value: $value)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OfferEntityCopyWith<$Res>  {
+  factory $OfferEntityCopyWith(OfferEntity value, $Res Function(OfferEntity) _then) = _$OfferEntityCopyWithImpl;
+@useResult
+$Res call({
+ String type, double value
+});
+
+
+
+
+}
+/// @nodoc
+class _$OfferEntityCopyWithImpl<$Res>
+    implements $OfferEntityCopyWith<$Res> {
+  _$OfferEntityCopyWithImpl(this._self, this._then);
+
+  final OfferEntity _self;
+  final $Res Function(OfferEntity) _then;
+
+/// Create a copy of OfferEntity
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? value = null,}) {
+  return _then(_self.copyWith(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OfferEntity].
+extension OfferEntityPatterns on OfferEntity {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OfferEntity value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OfferEntity() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OfferEntity value)  $default,){
+final _that = this;
+switch (_that) {
+case _OfferEntity():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OfferEntity value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OfferEntity() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  double value)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OfferEntity() when $default != null:
+return $default(_that.type,_that.value);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  double value)  $default,) {final _that = this;
+switch (_that) {
+case _OfferEntity():
+return $default(_that.type,_that.value);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  double value)?  $default,) {final _that = this;
+switch (_that) {
+case _OfferEntity() when $default != null:
+return $default(_that.type,_that.value);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OfferEntity implements OfferEntity {
+  const _OfferEntity({this.type = 'percentage', this.value = 0});
+  factory _OfferEntity.fromJson(Map<String, dynamic> json) => _$OfferEntityFromJson(json);
+
+@override@JsonKey() final  String type;
+// 'percentage' | 'fixed'
+@override@JsonKey() final  double value;
+
+/// Create a copy of OfferEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OfferEntityCopyWith<_OfferEntity> get copyWith => __$OfferEntityCopyWithImpl<_OfferEntity>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OfferEntityToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OfferEntity&&(identical(other.type, type) || other.type == type)&&(identical(other.value, value) || other.value == value));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,value);
+
+@override
+String toString() {
+  return 'OfferEntity(type: $type, value: $value)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OfferEntityCopyWith<$Res> implements $OfferEntityCopyWith<$Res> {
+  factory _$OfferEntityCopyWith(_OfferEntity value, $Res Function(_OfferEntity) _then) = __$OfferEntityCopyWithImpl;
+@override @useResult
+$Res call({
+ String type, double value
+});
+
+
+
+
+}
+/// @nodoc
+class __$OfferEntityCopyWithImpl<$Res>
+    implements _$OfferEntityCopyWith<$Res> {
+  __$OfferEntityCopyWithImpl(this._self, this._then);
+
+  final _OfferEntity _self;
+  final $Res Function(_OfferEntity) _then;
+
+/// Create a copy of OfferEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? value = null,}) {
+  return _then(_OfferEntity(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProductEntity {
 
- String get id; String get name; String get category; String get gender; String get imageUrl; List<ProductVariantEntity> get variants;
+ String get id; String get name; String get category; String get gender; String get imageUrl; List<ProductVariantEntity> get variants; OfferEntity? get offer;
 /// Create a copy of ProductEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +571,16 @@ $ProductEntityCopyWith<ProductEntity> get copyWith => _$ProductEntityCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other.variants, variants));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other.variants, variants)&&(identical(other.offer, offer) || other.offer == offer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,category,gender,imageUrl,const DeepCollectionEquality().hash(variants));
+int get hashCode => Object.hash(runtimeType,id,name,category,gender,imageUrl,const DeepCollectionEquality().hash(variants),offer);
 
 @override
 String toString() {
-  return 'ProductEntity(id: $id, name: $name, category: $category, gender: $gender, imageUrl: $imageUrl, variants: $variants)';
+  return 'ProductEntity(id: $id, name: $name, category: $category, gender: $gender, imageUrl: $imageUrl, variants: $variants, offer: $offer)';
 }
 
 
@@ -323,11 +591,11 @@ abstract mixin class $ProductEntityCopyWith<$Res>  {
   factory $ProductEntityCopyWith(ProductEntity value, $Res Function(ProductEntity) _then) = _$ProductEntityCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String category, String gender, String imageUrl, List<ProductVariantEntity> variants
+ String id, String name, String category, String gender, String imageUrl, List<ProductVariantEntity> variants, OfferEntity? offer
 });
 
 
-
+$OfferEntityCopyWith<$Res>? get offer;
 
 }
 /// @nodoc
@@ -340,7 +608,7 @@ class _$ProductEntityCopyWithImpl<$Res>
 
 /// Create a copy of ProductEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? category = null,Object? gender = null,Object? imageUrl = null,Object? variants = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? category = null,Object? gender = null,Object? imageUrl = null,Object? variants = null,Object? offer = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -348,10 +616,23 @@ as String,category: null == category ? _self.category : category // ignore: cast
 as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,variants: null == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
-as List<ProductVariantEntity>,
+as List<ProductVariantEntity>,offer: freezed == offer ? _self.offer : offer // ignore: cast_nullable_to_non_nullable
+as OfferEntity?,
   ));
 }
+/// Create a copy of ProductEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OfferEntityCopyWith<$Res>? get offer {
+    if (_self.offer == null) {
+    return null;
+  }
 
+  return $OfferEntityCopyWith<$Res>(_self.offer!, (value) {
+    return _then(_self.copyWith(offer: value));
+  });
+}
 }
 
 
@@ -433,10 +714,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants,  OfferEntity? offer)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductEntity() when $default != null:
-return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants);case _:
+return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants,_that.offer);case _:
   return orElse();
 
 }
@@ -454,10 +735,10 @@ return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants,  OfferEntity? offer)  $default,) {final _that = this;
 switch (_that) {
 case _ProductEntity():
-return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants);case _:
+return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants,_that.offer);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -474,10 +755,10 @@ return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String category,  String gender,  String imageUrl,  List<ProductVariantEntity> variants,  OfferEntity? offer)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductEntity() when $default != null:
-return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants);case _:
+return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_that.variants,_that.offer);case _:
   return null;
 
 }
@@ -489,7 +770,7 @@ return $default(_that.id,_that.name,_that.category,_that.gender,_that.imageUrl,_
 @JsonSerializable()
 
 class _ProductEntity extends ProductEntity {
-  const _ProductEntity({this.id = '', required this.name, required this.category, required this.gender, required this.imageUrl, final  List<ProductVariantEntity> variants = const []}): _variants = variants,super._();
+  const _ProductEntity({this.id = '', required this.name, required this.category, required this.gender, required this.imageUrl, final  List<ProductVariantEntity> variants = const [], this.offer}): _variants = variants,super._();
   factory _ProductEntity.fromJson(Map<String, dynamic> json) => _$ProductEntityFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -504,6 +785,7 @@ class _ProductEntity extends ProductEntity {
   return EqualUnmodifiableListView(_variants);
 }
 
+@override final  OfferEntity? offer;
 
 /// Create a copy of ProductEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -518,16 +800,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other._variants, _variants));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other._variants, _variants)&&(identical(other.offer, offer) || other.offer == offer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,category,gender,imageUrl,const DeepCollectionEquality().hash(_variants));
+int get hashCode => Object.hash(runtimeType,id,name,category,gender,imageUrl,const DeepCollectionEquality().hash(_variants),offer);
 
 @override
 String toString() {
-  return 'ProductEntity(id: $id, name: $name, category: $category, gender: $gender, imageUrl: $imageUrl, variants: $variants)';
+  return 'ProductEntity(id: $id, name: $name, category: $category, gender: $gender, imageUrl: $imageUrl, variants: $variants, offer: $offer)';
 }
 
 
@@ -538,11 +820,11 @@ abstract mixin class _$ProductEntityCopyWith<$Res> implements $ProductEntityCopy
   factory _$ProductEntityCopyWith(_ProductEntity value, $Res Function(_ProductEntity) _then) = __$ProductEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String category, String gender, String imageUrl, List<ProductVariantEntity> variants
+ String id, String name, String category, String gender, String imageUrl, List<ProductVariantEntity> variants, OfferEntity? offer
 });
 
 
-
+@override $OfferEntityCopyWith<$Res>? get offer;
 
 }
 /// @nodoc
@@ -555,7 +837,7 @@ class __$ProductEntityCopyWithImpl<$Res>
 
 /// Create a copy of ProductEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? category = null,Object? gender = null,Object? imageUrl = null,Object? variants = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? category = null,Object? gender = null,Object? imageUrl = null,Object? variants = null,Object? offer = freezed,}) {
   return _then(_ProductEntity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -563,11 +845,24 @@ as String,category: null == category ? _self.category : category // ignore: cast
 as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,variants: null == variants ? _self._variants : variants // ignore: cast_nullable_to_non_nullable
-as List<ProductVariantEntity>,
+as List<ProductVariantEntity>,offer: freezed == offer ? _self.offer : offer // ignore: cast_nullable_to_non_nullable
+as OfferEntity?,
   ));
 }
 
+/// Create a copy of ProductEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OfferEntityCopyWith<$Res>? get offer {
+    if (_self.offer == null) {
+    return null;
+  }
 
+  return $OfferEntityCopyWith<$Res>(_self.offer!, (value) {
+    return _then(_self.copyWith(offer: value));
+  });
+}
 }
 
 // dart format on

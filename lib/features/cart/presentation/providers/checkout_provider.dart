@@ -230,13 +230,13 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       final maxTotal = (data['maxUsesTotal'] as num?)?.toInt() ?? 0;
       final usedCount = (data['usedCount'] as num?)?.toInt() ?? 0;
       if (maxTotal > 0 && usedCount >= maxTotal) {
-        state = state.copyWith(couponError: 'Este cupón alcanzó su límite de usos.');
+        state = state.copyWith(couponError: 'Límite de usos alcanzado.');
         return;
       }
 
       final minPurchase = (data['minPurchase'] as num?)?.toDouble() ?? 0;
       if (minPurchase > 0 && subtotal < minPurchase) {
-        state = state.copyWith(couponError: 'Compra mínima de \$${minPurchase.toStringAsFixed(2)} requerida.');
+        state = state.copyWith(couponError: 'Compra mínima \$${minPurchase.toStringAsFixed(2)}.');
         return;
       }
 
@@ -255,7 +255,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
           : '\$${discountValue.toStringAsFixed(2)} de descuento';
 
       state = state.copyWith(
-        couponCode: data['code'] as String,
+        couponCode: (data['code'] as String?) ?? trimmed,
         couponId: doc.id,
         couponDiscount: (discount * 100).round() / 100,
         couponDescription: desc,
@@ -327,7 +327,8 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
           throw Exception('Producto "${item.productName}" ya no existe.');
         }
 
-        final productData = productDoc.data()!;
+        final productData = productDoc.data();
+        if (productData == null) throw Exception('Datos de producto no disponibles.');
         final variants = productData['variants'] as List<dynamic>? ?? [];
 
         // Find matching variant

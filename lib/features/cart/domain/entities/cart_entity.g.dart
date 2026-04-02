@@ -16,6 +16,8 @@ _CartItemEntity _$CartItemEntityFromJson(Map<String, dynamic> json) =>
       price: (json['price'] as num).toDouble(),
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
       barcode: json['barcode'] as String?,
+      offerType: json['offerType'] as String? ?? '',
+      offerValue: (json['offerValue'] as num?)?.toDouble() ?? 0,
     );
 
 Map<String, dynamic> _$CartItemEntityToJson(_CartItemEntity instance) =>
@@ -28,4 +30,6 @@ Map<String, dynamic> _$CartItemEntityToJson(_CartItemEntity instance) =>
       'price': instance.price,
       'quantity': instance.quantity,
       'barcode': instance.barcode,
+      'offerType': instance.offerType,
+      'offerValue': instance.offerValue,
     };

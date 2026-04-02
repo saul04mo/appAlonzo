@@ -64,6 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Si NO está logueado → mandar a login (excepto si ya está ahí)
       if (!isLoggedIn) {
+        debugPrint('AUTH: No logueado. Redirigiendo a LOGIN.');
         return isOnLogin ? null : AppRoutes.login;
       }
 
@@ -80,7 +81,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           _hasProfile = doc.exists &&
               doc.data() != null &&
               (doc.data()!['name'] ?? '').toString().isNotEmpty;
-        } catch (_) {
+          debugPrint('ROUTER: Perfil en Firestore: $_hasProfile');
+        } catch (e) {
+          debugPrint('ROUTER ERROR: Fallo al consultar perfil: $e');
           _hasProfile = false;
         }
         return _hasProfile;
@@ -89,18 +92,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Si está en login y ya logueado → verificar perfil
       if (isOnLogin) {
         final hasProfile = await ensureProfileChecked();
+        debugPrint('ROUTER: En LOGIN pero con AUTH. Perfil=$hasProfile. Redirigiendo...');
         return hasProfile ? AppRoutes.home : AppRoutes.completeProfile;
       }
 
       // Si está en complete-profile y ya tiene perfil → home
       if (isOnCompleteProfile) {
         final hasProfile = await ensureProfileChecked();
+        debugPrint('ROUTER: En COMPLETE_PROFILE. Perfil=$hasProfile.');
         return hasProfile ? AppRoutes.home : null;
       }
 
       // Para CUALQUIER otra ruta, verificar perfil
       final hasProfile = await ensureProfileChecked();
-      if (!hasProfile) return AppRoutes.completeProfile;
+      if (!hasProfile) {
+        debugPrint('ROUTER: Sin perfil. Redirigiendo a COMPLETE_PROFILE.');
+        return AppRoutes.completeProfile;
+      }
 
       return null;
     },

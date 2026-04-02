@@ -26,6 +26,14 @@ Map<String, dynamic> _$ProductVariantEntityToJson(
   'stock': instance.stock,
 };
 
+_OfferEntity _$OfferEntityFromJson(Map<String, dynamic> json) => _OfferEntity(
+  type: json['type'] as String? ?? 'percentage',
+  value: (json['value'] as num?)?.toDouble() ?? 0,
+);
+
+Map<String, dynamic> _$OfferEntityToJson(_OfferEntity instance) =>
+    <String, dynamic>{'type': instance.type, 'value': instance.value};
+
 _ProductEntity _$ProductEntityFromJson(Map<String, dynamic> json) =>
     _ProductEntity(
       id: json['id'] as String? ?? '',
@@ -40,6 +48,9 @@ _ProductEntity _$ProductEntityFromJson(Map<String, dynamic> json) =>
               )
               .toList() ??
           const [],
+      offer: json['offer'] == null
+          ? null
+          : OfferEntity.fromJson(json['offer'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ProductEntityToJson(_ProductEntity instance) =>
@@ -50,4 +61,5 @@ Map<String, dynamic> _$ProductEntityToJson(_ProductEntity instance) =>
       'gender': instance.gender,
       'imageUrl': instance.imageUrl,
       'variants': instance.variants,
+      'offer': instance.offer,
     };

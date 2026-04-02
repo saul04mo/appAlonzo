@@ -45,9 +45,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
             status: AuthStatus.authenticated,
             user: user,
           );
-        } catch (_) {
-          await _repo.signOut();
-          state = const AuthState(status: AuthStatus.unauthenticated);
+        } catch (e) {
+          final errorStr = e.toString().toLowerCase();
+          // Si el error es de red (común en emuladores), NO cerramos sesión.
+          // Solo cerramos si el usuario es inválido o fue eliminado.
+          if (errorStr.contains('network') || errorStr.contains('unavailable') || errorStr.contains('deadline')) {
+            state = AuthState(
+              status: AuthStatus.authenticated,
+              user: user,
+            );
+          } else {
+            await _repo.signOut();
+            state = const AuthState(status: AuthStatus.unauthenticated);
+          }
         }
       } else {
         state = const AuthState(status: AuthStatus.unauthenticated);

@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CartItemEntity {
 
- String get productId; String get productName; String get imageUrl; String get selectedSize; String get selectedColor; double get price; int get quantity; String? get barcode;
+ String get productId; String get productName; String get imageUrl; String get selectedSize; String get selectedColor; double get price; int get quantity; String? get barcode; String get offerType;// 'percentage' | 'fixed' | ''
+ double get offerValue;
 /// Create a copy of CartItemEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +29,16 @@ $CartItemEntityCopyWith<CartItemEntity> get copyWith => _$CartItemEntityCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CartItemEntity&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.productName, productName) || other.productName == productName)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.selectedSize, selectedSize) || other.selectedSize == selectedSize)&&(identical(other.selectedColor, selectedColor) || other.selectedColor == selectedColor)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.barcode, barcode) || other.barcode == barcode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CartItemEntity&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.productName, productName) || other.productName == productName)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.selectedSize, selectedSize) || other.selectedSize == selectedSize)&&(identical(other.selectedColor, selectedColor) || other.selectedColor == selectedColor)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.barcode, barcode) || other.barcode == barcode)&&(identical(other.offerType, offerType) || other.offerType == offerType)&&(identical(other.offerValue, offerValue) || other.offerValue == offerValue));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,productId,productName,imageUrl,selectedSize,selectedColor,price,quantity,barcode);
+int get hashCode => Object.hash(runtimeType,productId,productName,imageUrl,selectedSize,selectedColor,price,quantity,barcode,offerType,offerValue);
 
 @override
 String toString() {
-  return 'CartItemEntity(productId: $productId, productName: $productName, imageUrl: $imageUrl, selectedSize: $selectedSize, selectedColor: $selectedColor, price: $price, quantity: $quantity, barcode: $barcode)';
+  return 'CartItemEntity(productId: $productId, productName: $productName, imageUrl: $imageUrl, selectedSize: $selectedSize, selectedColor: $selectedColor, price: $price, quantity: $quantity, barcode: $barcode, offerType: $offerType, offerValue: $offerValue)';
 }
 
 
@@ -48,7 +49,7 @@ abstract mixin class $CartItemEntityCopyWith<$Res>  {
   factory $CartItemEntityCopyWith(CartItemEntity value, $Res Function(CartItemEntity) _then) = _$CartItemEntityCopyWithImpl;
 @useResult
 $Res call({
- String productId, String productName, String imageUrl, String selectedSize, String selectedColor, double price, int quantity, String? barcode
+ String productId, String productName, String imageUrl, String selectedSize, String selectedColor, double price, int quantity, String? barcode, String offerType, double offerValue
 });
 
 
@@ -65,7 +66,7 @@ class _$CartItemEntityCopyWithImpl<$Res>
 
 /// Create a copy of CartItemEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? productId = null,Object? productName = null,Object? imageUrl = null,Object? selectedSize = null,Object? selectedColor = null,Object? price = null,Object? quantity = null,Object? barcode = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? productId = null,Object? productName = null,Object? imageUrl = null,Object? selectedSize = null,Object? selectedColor = null,Object? price = null,Object? quantity = null,Object? barcode = freezed,Object? offerType = null,Object? offerValue = null,}) {
   return _then(_self.copyWith(
 productId: null == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
 as String,productName: null == productName ? _self.productName : productName // ignore: cast_nullable_to_non_nullable
@@ -75,7 +76,9 @@ as String,selectedColor: null == selectedColor ? _self.selectedColor : selectedC
 as String,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as double,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,barcode: freezed == barcode ? _self.barcode : barcode // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,offerType: null == offerType ? _self.offerType : offerType // ignore: cast_nullable_to_non_nullable
+as String,offerValue: null == offerValue ? _self.offerValue : offerValue // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -160,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode,  String offerType,  double offerValue)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CartItemEntity() when $default != null:
-return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode);case _:
+return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode,_that.offerType,_that.offerValue);case _:
   return orElse();
 
 }
@@ -181,10 +184,10 @@ return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedS
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode,  String offerType,  double offerValue)  $default,) {final _that = this;
 switch (_that) {
 case _CartItemEntity():
-return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode);case _:
+return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode,_that.offerType,_that.offerValue);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +204,10 @@ return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedS
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String productId,  String productName,  String imageUrl,  String selectedSize,  String selectedColor,  double price,  int quantity,  String? barcode,  String offerType,  double offerValue)?  $default,) {final _that = this;
 switch (_that) {
 case _CartItemEntity() when $default != null:
-return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode);case _:
+return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedSize,_that.selectedColor,_that.price,_that.quantity,_that.barcode,_that.offerType,_that.offerValue);case _:
   return null;
 
 }
@@ -216,7 +219,7 @@ return $default(_that.productId,_that.productName,_that.imageUrl,_that.selectedS
 @JsonSerializable()
 
 class _CartItemEntity extends CartItemEntity {
-  const _CartItemEntity({required this.productId, required this.productName, required this.imageUrl, required this.selectedSize, required this.selectedColor, required this.price, this.quantity = 1, this.barcode}): super._();
+  const _CartItemEntity({required this.productId, required this.productName, required this.imageUrl, required this.selectedSize, required this.selectedColor, required this.price, this.quantity = 1, this.barcode, this.offerType = '', this.offerValue = 0}): super._();
   factory _CartItemEntity.fromJson(Map<String, dynamic> json) => _$CartItemEntityFromJson(json);
 
 @override final  String productId;
@@ -227,6 +230,9 @@ class _CartItemEntity extends CartItemEntity {
 @override final  double price;
 @override@JsonKey() final  int quantity;
 @override final  String? barcode;
+@override@JsonKey() final  String offerType;
+// 'percentage' | 'fixed' | ''
+@override@JsonKey() final  double offerValue;
 
 /// Create a copy of CartItemEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CartItemEntity&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.productName, productName) || other.productName == productName)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.selectedSize, selectedSize) || other.selectedSize == selectedSize)&&(identical(other.selectedColor, selectedColor) || other.selectedColor == selectedColor)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.barcode, barcode) || other.barcode == barcode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CartItemEntity&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.productName, productName) || other.productName == productName)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.selectedSize, selectedSize) || other.selectedSize == selectedSize)&&(identical(other.selectedColor, selectedColor) || other.selectedColor == selectedColor)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.barcode, barcode) || other.barcode == barcode)&&(identical(other.offerType, offerType) || other.offerType == offerType)&&(identical(other.offerValue, offerValue) || other.offerValue == offerValue));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,productId,productName,imageUrl,selectedSize,selectedColor,price,quantity,barcode);
+int get hashCode => Object.hash(runtimeType,productId,productName,imageUrl,selectedSize,selectedColor,price,quantity,barcode,offerType,offerValue);
 
 @override
 String toString() {
-  return 'CartItemEntity(productId: $productId, productName: $productName, imageUrl: $imageUrl, selectedSize: $selectedSize, selectedColor: $selectedColor, price: $price, quantity: $quantity, barcode: $barcode)';
+  return 'CartItemEntity(productId: $productId, productName: $productName, imageUrl: $imageUrl, selectedSize: $selectedSize, selectedColor: $selectedColor, price: $price, quantity: $quantity, barcode: $barcode, offerType: $offerType, offerValue: $offerValue)';
 }
 
 
@@ -261,7 +267,7 @@ abstract mixin class _$CartItemEntityCopyWith<$Res> implements $CartItemEntityCo
   factory _$CartItemEntityCopyWith(_CartItemEntity value, $Res Function(_CartItemEntity) _then) = __$CartItemEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String productId, String productName, String imageUrl, String selectedSize, String selectedColor, double price, int quantity, String? barcode
+ String productId, String productName, String imageUrl, String selectedSize, String selectedColor, double price, int quantity, String? barcode, String offerType, double offerValue
 });
 
 
@@ -278,7 +284,7 @@ class __$CartItemEntityCopyWithImpl<$Res>
 
 /// Create a copy of CartItemEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? productId = null,Object? productName = null,Object? imageUrl = null,Object? selectedSize = null,Object? selectedColor = null,Object? price = null,Object? quantity = null,Object? barcode = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? productId = null,Object? productName = null,Object? imageUrl = null,Object? selectedSize = null,Object? selectedColor = null,Object? price = null,Object? quantity = null,Object? barcode = freezed,Object? offerType = null,Object? offerValue = null,}) {
   return _then(_CartItemEntity(
 productId: null == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
 as String,productName: null == productName ? _self.productName : productName // ignore: cast_nullable_to_non_nullable
@@ -288,7 +294,9 @@ as String,selectedColor: null == selectedColor ? _self.selectedColor : selectedC
 as String,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as double,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,barcode: freezed == barcode ? _self.barcode : barcode // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,offerType: null == offerType ? _self.offerType : offerType // ignore: cast_nullable_to_non_nullable
+as String,offerValue: null == offerValue ? _self.offerValue : offerValue // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
