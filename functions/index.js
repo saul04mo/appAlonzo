@@ -263,6 +263,10 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unavailable', 'No se pudo obtener la tasa BCV. Intenta más tarde.');
   }
 
+  // Get previous rate
+  const prev = await db.doc('config/exchangeRate').get();
+  const prevRate = prev.exists ? prev.data().value : null;
+
   const now = new Date();
   await db.doc('config/exchangeRate').set({
     value: rate,
@@ -273,7 +277,18 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     lastCheck: now.toISOString(),
   }, { merge: true });
 
-  return { rate, updatedAt: now.toISOString() };
+  // Log to history
+  await db.collection('exchangeRateHistory').add({
+    previousRate: prevRate,
+    newRate: rate,
+    change: prevRate ? rate - prevRate : 0,
+    source: 'BCV-EUR',
+    method: 'manual',
+    updatedBy: context.auth?.uid || 'system',
+    timestamp: FieldValue.serverTimestamp(),
+  });
+
+  return { rate, previousRate: prevRate, updatedAt: now.toISOString() };
 });
 
 /**
@@ -302,6 +317,17 @@ exports.scheduledBcvRate = functions.pubsub
       updatedBy: 'scheduled',
       lastCheck: new Date().toISOString(),
     }, { merge: true });
+
+    // Log to history
+    await db.collection('exchangeRateHistory').add({
+      previousRate: prevRate,
+      newRate: rate,
+      change: prevRate ? rate - prevRate : 0,
+      source: 'BCV-EUR',
+      method: 'scheduled',
+      updatedBy: 'scheduled',
+      timestamp: FieldValue.serverTimestamp(),
+    });
 
     console.log(`SCHEDULED BCV EUR: Updated ${prevRate} → ${rate}`);
   });

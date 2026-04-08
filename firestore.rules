@@ -108,6 +108,13 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
+    // 15. HISTORIAL DE TASA DE CAMBIO
+    match /exchangeRateHistory/{document=**} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
     // BLOQUEAR TODO LO DEMÁS
     match /{document=**} {
       allow read, write: if false;
