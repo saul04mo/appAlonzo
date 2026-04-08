@@ -184,3 +184,123 @@ exports.validateOrder = functions.firestore
     });
   }
 });
+
+// ══════════════════════════════════════════════════════════
+// TASA BCV AUTOMÁTICA
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Fetch BCV rate from multiple sources with fallback.
+ * Returns the rate as a number or null if all sources fail.
+ */
+async function getBcvRate() {
+  // Source 1: PyDolarVe
+  try {
+    const res = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
+      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // Response: { monitors: { usd: { price: 51.23 } } }
+      const rate = data?.monitors?.usd?.price;
+      if (rate && typeof rate === 'number' && rate > 0) {
+        console.log(`BCV rate from PyDolarVe: ${rate}`);
+        return rate;
+      }
+    }
+  } catch (e) {
+    console.warn('PyDolarVe failed:', e.message);
+  }
+
+  // Source 2: DolarAPI Venezuela
+  try {
+    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', {
+      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const rate = data?.promedio;
+      if (rate && typeof rate === 'number' && rate > 0) {
+        console.log(`BCV rate from DolarAPI: ${rate}`);
+        return rate;
+      }
+    }
+  } catch (e) {
+    console.warn('DolarAPI failed:', e.message);
+  }
+
+  // Source 3: alcambio.app
+  try {
+    const res = await fetch('https://api.alcambio.app/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'ALONZO-POS/1.0' },
+      body: JSON.stringify({ query: '{ getRates { BCV { rate } } }' }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const rate = data?.data?.getRates?.BCV?.rate;
+      if (rate && typeof rate === 'number' && rate > 0) {
+        console.log(`BCV rate from AlCambio: ${rate}`);
+        return rate;
+      }
+    }
+  } catch (e) {
+    console.warn('AlCambio failed:', e.message);
+  }
+
+  return null;
+}
+
+/**
+ * HTTP Callable — Manual refresh from POS/Web.
+ * Call from client: firebase.functions().httpsCallable('refreshBcvRate')()
+ */
+exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
+  const rate = await getBcvRate();
+  if (!rate) {
+    throw new functions.https.HttpsError('unavailable', 'No se pudo obtener la tasa BCV. Intenta más tarde.');
+  }
+
+  const now = new Date();
+  await db.doc('config/exchangeRate').set({
+    value: rate,
+    source: 'BCV',
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: context.auth?.uid || 'system',
+    lastCheck: now.toISOString(),
+  }, { merge: true });
+
+  return { rate, updatedAt: now.toISOString() };
+});
+
+/**
+ * Scheduled — Runs daily at 1:00 PM UTC (9:00 AM Venezuela).
+ * Automatically updates the exchange rate in Firestore.
+ */
+exports.scheduledBcvRate = functions.pubsub
+  .schedule('0 13 * * *')
+  .timeZone('America/Caracas')
+  .onRun(async () => {
+    const rate = await getBcvRate();
+    if (!rate) {
+      console.error('SCHEDULED BCV: All sources failed');
+      return;
+    }
+
+    const prev = await db.doc('config/exchangeRate').get();
+    const prevRate = prev.exists ? prev.data().value : null;
+
+    await db.doc('config/exchangeRate').set({
+      value: rate,
+      previousValue: prevRate,
+      source: 'BCV',
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: 'scheduled',
+      lastCheck: new Date().toISOString(),
+    }, { merge: true });
+
+    console.log(`SCHEDULED BCV: Updated ${prevRate} → ${rate}`);
+  });
