@@ -194,36 +194,17 @@ exports.validateOrder = functions.firestore
  * Returns the rate as a number or null if all sources fail.
  */
 async function getBcvRate() {
-  // Source 1: PyDolarVe
+  // Source 1 (Primary): DolarAPI Venezuela — Tasa EURO BCV
   try {
-    const res = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
+    const res = await fetch('https://ve.dolarapi.com/v1/euros/oficial', {
       headers: { 'User-Agent': 'ALONZO-POS/1.0' },
       signal: AbortSignal.timeout(8000),
     });
     if (res.ok) {
       const data = await res.json();
-      // Response: { monitors: { usd: { price: 51.23 } } }
-      const rate = data?.monitors?.usd?.price;
+      const rate = data?.promedio || data?.precio;
       if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`BCV rate from PyDolarVe: ${rate}`);
-        return rate;
-      }
-    }
-  } catch (e) {
-    console.warn('PyDolarVe failed:', e.message);
-  }
-
-  // Source 2: DolarAPI Venezuela
-  try {
-    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', {
-      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const rate = data?.promedio;
-      if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`BCV rate from DolarAPI: ${rate}`);
+        console.log(`EUR/BCV rate from DolarAPI: ${rate}`);
         return rate;
       }
     }
@@ -231,19 +212,37 @@ async function getBcvRate() {
     console.warn('DolarAPI failed:', e.message);
   }
 
-  // Source 3: alcambio.app
+  // Source 2 (Fallback): PyDolarVe — Tasa EURO BCV
   try {
-    const res = await fetch('https://api.alcambio.app/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'ALONZO-POS/1.0' },
-      body: JSON.stringify({ query: '{ getRates { BCV { rate } } }' }),
+    const res = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
+      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
       signal: AbortSignal.timeout(8000),
     });
     if (res.ok) {
       const data = await res.json();
-      const rate = data?.data?.getRates?.BCV?.rate;
+      const rate = data?.monitors?.eur?.price;
       if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`BCV rate from AlCambio: ${rate}`);
+        console.log(`EUR/BCV rate from PyDolarVe: ${rate}`);
+        return rate;
+      }
+    }
+  } catch (e) {
+    console.warn('PyDolarVe failed:', e.message);
+  }
+
+  // Source 3 (Fallback): alcambio.app
+  try {
+    const res = await fetch('https://api.alcambio.app/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'ALONZO-POS/1.0' },
+      body: JSON.stringify({ query: '{ getRates { BCV { rateEur } } }' }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const rate = data?.data?.getRates?.BCV?.rateEur || data?.data?.getRates?.BCV?.rate;
+      if (rate && typeof rate === 'number' && rate > 0) {
+        console.log(`EUR/BCV rate from AlCambio: ${rate}`);
         return rate;
       }
     }
@@ -267,7 +266,8 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
   const now = new Date();
   await db.doc('config/exchangeRate').set({
     value: rate,
-    source: 'BCV',
+    source: 'BCV-EUR',
+    currency: 'EUR',
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: context.auth?.uid || 'system',
     lastCheck: now.toISOString(),
@@ -296,11 +296,12 @@ exports.scheduledBcvRate = functions.pubsub
     await db.doc('config/exchangeRate').set({
       value: rate,
       previousValue: prevRate,
-      source: 'BCV',
+      source: 'BCV-EUR',
+      currency: 'EUR',
       updatedAt: FieldValue.serverTimestamp(),
       updatedBy: 'scheduled',
       lastCheck: new Date().toISOString(),
     }, { merge: true });
 
-    console.log(`SCHEDULED BCV: Updated ${prevRate} → ${rate}`);
+    console.log(`SCHEDULED BCV EUR: Updated ${prevRate} → ${rate}`);
   });
