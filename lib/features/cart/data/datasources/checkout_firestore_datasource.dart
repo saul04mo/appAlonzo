@@ -37,18 +37,19 @@ class CheckoutFirestoreDataSource {
     invoiceData['clientEmail'] = user.email ?? '';
 
     final invoiceRef = _firestore.collection('invoices').doc();
-    final counterRef = _firestore.collection('config').doc('orderCounter');
+    // SAME counter as POS: config/invoiceCounter with field lastNumericId
+    final counterRef = _firestore.collection('config').doc('invoiceCounter');
 
     final numericId = await _firestore.runTransaction<int>((tx) async {
       // Read counter inside the transaction (atomic)
       final counterSnap = await tx.get(counterRef);
       final lastId = counterSnap.exists
-          ? (counterSnap.data()?['value'] as int? ?? 0)
+          ? (counterSnap.data()?['lastNumericId'] as int? ?? 0)
           : 0;
       final nextId = lastId + 1;
 
       // Write both atomically
-      tx.set(counterRef, {'value': nextId});
+      tx.set(counterRef, {'lastNumericId': nextId}, SetOptions(merge: true));
       tx.set(invoiceRef, {...invoiceData, 'numericId': nextId});
       return nextId;
     });

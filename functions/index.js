@@ -152,19 +152,23 @@ exports.validateOrder = functions.firestore
       return;
     }
 
-    // ── 5. Order is valid — decrement stock ──
+    // ── 5. Order is valid — decrement stock (only if not already done) ──
     const batch = db.batch();
-    for (const update of stockUpdates) {
-      const productRef = db.collection('products').doc(update.productId);
-      // We need to read and update the specific variant's stock
-      const pSnap = await productRef.get();
-      const variants = [...(pSnap.data().variants || [])];
-      if (variants[update.variantIndex]) {
-        const currentStock = parseInt(variants[update.variantIndex].stock) || 0;
-        variants[update.variantIndex].stock = Math.max(0, currentStock - update.qty);
-        batch.update(productRef, { variants });
+
+    if (!invoice.stockDeducted) {
+      // Stock not yet deducted (e.g., Flutter app orders) — decrement now
+      for (const update of stockUpdates) {
+        const productRef = db.collection('products').doc(update.productId);
+        const pSnap = await productRef.get();
+        const variants = [...(pSnap.data().variants || [])];
+        if (variants[update.variantIndex]) {
+          const currentStock = parseInt(variants[update.variantIndex].stock) || 0;
+          variants[update.variantIndex].stock = Math.max(0, currentStock - update.qty);
+          batch.update(productRef, { variants });
+        }
       }
     }
+    // else: stock was already deducted by Web/POS server-side transaction
 
     // Mark as validated
     batch.update(invoiceRef, {
