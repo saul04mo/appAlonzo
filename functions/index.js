@@ -38,18 +38,47 @@ exports.validateOrder = functions.firestore
   const invoice = snap.data();
   const invoiceRef = snap.ref;
 
+  // ── IDEMPOTENCY: Skip if already validated (Firebase can retry on failure) ──
+  if (invoice.serverValidated || invoice.status === 'Rechazada') {
+    console.log(`SKIP: ${invoiceRef.id} already processed`);
+    return;
+  }
+
   // Skip POS orders (already validated by the admin system)
   if (invoice.sellerUid && invoice.sellerUid !== 'APP' && invoice.sellerUid !== 'WEB') {
+    await invoiceRef.update({
+      serverValidated: true,
+      validatedAt: FieldValue.serverTimestamp(),
+      validationNote: 'POS order — skipped server validation',
+    });
     return;
   }
 
   try {
     const items = invoice.items || [];
+    if (items.length === 0) {
+      await invoiceRef.update({
+        status: 'Rechazada',
+        rejectionReason: 'Factura sin items.',
+        validatedAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
     let serverTotal = 0;
     const stockUpdates = [];
 
     // ── 1. Verify each item's price from products collection ──
     for (const item of items) {
+      if (!item.productId) {
+        await invoiceRef.update({
+          status: 'Rechazada',
+          rejectionReason: `Item sin productId: ${item.productName || 'desconocido'}.`,
+          validatedAt: FieldValue.serverTimestamp(),
+        });
+        return;
+      }
+
       const productSnap = await db.collection('products').doc(item.productId).get();
       if (!productSnap.exists) {
         await invoiceRef.update({
@@ -62,27 +91,57 @@ exports.validateOrder = functions.firestore
 
       const productData = productSnap.data();
       const variants = productData.variants || [];
-      const variant = variants.find(v =>
-        v.size === (item.size || item.selectedSize) &&
-        v.color === (item.color || item.selectedColor)
-      );
+      
+      // Try to find variant by variantIndex first (most reliable), then by size/color
+      let variant = null;
+      let variantIndex = -1;
+
+      if (item.variantIndex !== undefined && item.variantIndex >= 0 && item.variantIndex < variants.length) {
+        variant = variants[item.variantIndex];
+        variantIndex = item.variantIndex;
+      }
+      
+      if (!variant) {
+        // Fallback: find by size/color match
+        const size = item.size || item.selectedSize || '';
+        const color = item.color || item.selectedColor || '';
+        if (size || color) {
+          variantIndex = variants.findIndex(v =>
+            (v.size || '') === size && (v.color || '') === color
+          );
+          if (variantIndex >= 0) variant = variants[variantIndex];
+        }
+      }
+
+      if (!variant) {
+        // Fallback: parse variantLabel "M / Negro"
+        if (item.variantLabel) {
+          const parts = item.variantLabel.split('/').map(s => s.trim());
+          const labelSize = parts[0] !== 'N/A' ? parts[0] : '';
+          const labelColor = parts[1] !== 'N/A' ? parts[1] : '';
+          variantIndex = variants.findIndex(v =>
+            (v.size || '') === labelSize && (v.color || '') === labelColor
+          );
+          if (variantIndex >= 0) variant = variants[variantIndex];
+        }
+      }
 
       if (!variant) {
         await invoiceRef.update({
           status: 'Rechazada',
-          rejectionReason: `Variante no encontrada para ${item.productName}.`,
+          rejectionReason: `Variante no encontrada para ${item.productName || item.productId}. Index: ${item.variantIndex}, Label: ${item.variantLabel || 'N/A'}.`,
           validatedAt: FieldValue.serverTimestamp(),
         });
         return;
       }
 
-      // Verify stock
+      // Verify stock (only if we need to deduct — skip for already-deducted orders)
       const stock = parseInt(variant.stock) || 0;
       const qty = item.quantity || item.qty || 1;
-      if (stock < qty) {
+      if (!invoice.stockDeducted && stock < qty) {
         await invoiceRef.update({
           status: 'Rechazada',
-          rejectionReason: `Stock insuficiente para ${item.productName}: ${stock} disponibles, ${qty} solicitados.`,
+          rejectionReason: `Stock insuficiente para ${item.productName || productData.name}: ${stock} disponibles, ${qty} solicitados.`,
           validatedAt: FieldValue.serverTimestamp(),
         });
         return;
@@ -103,13 +162,7 @@ exports.validateOrder = functions.firestore
 
       serverTotal += finalPrice * qty;
 
-      // Queue stock decrement
-      const variantIndex = variants.indexOf(variant);
-      stockUpdates.push({
-        productId: item.productId,
-        variantIndex,
-        qty,
-      });
+      stockUpdates.push({ productId: item.productId, variantIndex, qty });
     }
 
     // ── 2. Validate coupon if applied ──
@@ -130,18 +183,14 @@ exports.validateOrder = functions.firestore
 
     // ── 3. Calculate delivery cost ──
     const deliveryCost = parseFloat(invoice.deliveryCostUsd) || 0;
-    if (invoice.appliedCoupon?.freeShipping) {
-      // Free shipping via coupon — set to 0
-    }
     const effectiveDelivery = invoice.appliedCoupon?.freeShipping ? 0 : deliveryCost;
 
     // ── 4. Compare totals ──
-    const serverFinalTotal = serverTotal - couponDiscount + effectiveDelivery;
+    const serverFinalTotal = Math.round((serverTotal - couponDiscount + effectiveDelivery) * 100) / 100;
     const clientTotal = parseFloat(invoice.total) || 0;
     const difference = Math.abs(serverFinalTotal - clientTotal);
 
     if (difference > 0.50) {
-      // Price manipulation detected!
       await invoiceRef.update({
         status: 'Rechazada',
         rejectionReason: `Total no coincide. Servidor: $${serverFinalTotal.toFixed(2)}, Cliente: $${clientTotal.toFixed(2)}.`,
@@ -156,10 +205,10 @@ exports.validateOrder = functions.firestore
     const batch = db.batch();
 
     if (!invoice.stockDeducted) {
-      // Stock not yet deducted (e.g., Flutter app orders) — decrement now
       for (const update of stockUpdates) {
         const productRef = db.collection('products').doc(update.productId);
         const pSnap = await productRef.get();
+        if (!pSnap.exists) continue;
         const variants = [...(pSnap.data().variants || [])];
         if (variants[update.variantIndex]) {
           const currentStock = parseInt(variants[update.variantIndex].stock) || 0;
@@ -168,7 +217,6 @@ exports.validateOrder = functions.firestore
         }
       }
     }
-    // else: stock was already deducted by Web/POS server-side transaction
 
     // Mark as validated
     batch.update(invoiceRef, {
@@ -178,14 +226,18 @@ exports.validateOrder = functions.firestore
     });
 
     await batch.commit();
-    console.log(`ORDER VALIDATED ${invoiceRef.id}: $${serverFinalTotal.toFixed(2)}`);
+    console.log(`ORDER VALIDATED ${invoiceRef.id}: $${serverFinalTotal.toFixed(2)} stockDeducted=${!!invoice.stockDeducted}`);
 
   } catch (error) {
     console.error(`ORDER VALIDATION ERROR ${invoiceRef.id}:`, error);
-    await invoiceRef.update({
-      validationError: error.message,
-      validatedAt: FieldValue.serverTimestamp(),
-    });
+    try {
+      await invoiceRef.update({
+        validationError: error.message,
+        validatedAt: FieldValue.serverTimestamp(),
+      });
+    } catch (updateErr) {
+      console.error(`FAILED TO WRITE ERROR TO INVOICE ${invoiceRef.id}:`, updateErr);
+    }
   }
 });
 
@@ -259,17 +311,26 @@ async function getBcvRate() {
 
 /**
  * HTTP Callable — Manual refresh from POS/Web.
- * Call from client: firebase.functions().httpsCallable('refreshBcvRate')()
+ * Requires authentication.
  */
 exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
+  // Require authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
+  }
+
   const rate = await getBcvRate();
   if (!rate) {
     throw new functions.https.HttpsError('unavailable', 'No se pudo obtener la tasa BCV. Intenta más tarde.');
   }
 
-  // Get previous rate
+  // Get previous rate — skip if identical
   const prev = await db.doc('config/exchangeRate').get();
   const prevRate = prev.exists ? prev.data().value : null;
+
+  if (prevRate && Math.abs(prevRate - rate) < 0.01) {
+    return { rate, previousRate: prevRate, updatedAt: new Date().toISOString(), changed: false };
+  }
 
   const now = new Date();
   await db.doc('config/exchangeRate').set({
@@ -277,7 +338,7 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     source: 'BCV-EUR',
     currency: 'EUR',
     updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: context.auth?.uid || 'system',
+    updatedBy: context.auth.uid,
     lastCheck: now.toISOString(),
   }, { merge: true });
 
@@ -288,19 +349,19 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     change: prevRate ? rate - prevRate : 0,
     source: 'BCV-EUR',
     method: 'manual',
-    updatedBy: context.auth?.uid || 'system',
+    updatedBy: context.auth.uid,
     timestamp: FieldValue.serverTimestamp(),
   });
 
-  return { rate, previousRate: prevRate, updatedAt: now.toISOString() };
+  return { rate, previousRate: prevRate, updatedAt: now.toISOString(), changed: true };
 });
 
 /**
- * Scheduled — Runs daily at 1:00 PM UTC (9:00 AM Venezuela).
+ * Scheduled — Runs daily at 9:00 AM and 5:00 PM Venezuela time.
  * Automatically updates the exchange rate in Firestore.
  */
 exports.scheduledBcvRate = functions.pubsub
-  .schedule('0 13 * * *')
+  .schedule('0 9,17 * * *')
   .timeZone('America/Caracas')
   .onRun(async () => {
     const rate = await getBcvRate();
@@ -311,6 +372,12 @@ exports.scheduledBcvRate = functions.pubsub
 
     const prev = await db.doc('config/exchangeRate').get();
     const prevRate = prev.exists ? prev.data().value : null;
+
+    // Skip if rate hasn't changed (avoid unnecessary writes)
+    if (prevRate && Math.abs(prevRate - rate) < 0.01) {
+      console.log(`SCHEDULED BCV EUR: No change (${rate})`);
+      return;
+    }
 
     await db.doc('config/exchangeRate').set({
       value: rate,
