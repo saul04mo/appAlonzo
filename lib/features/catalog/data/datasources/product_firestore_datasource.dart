@@ -21,20 +21,27 @@ class ProductFirestoreDataSource {
         .where('gender', isEqualTo: gender)
         .snapshots()
         .map((snapshot) =>
-            snapshot.docs.map(ProductModel.fromFirestore).toList());
+            snapshot.docs
+                .where((doc) => doc.data()['active'] != false) // Hide inactive
+                .map(ProductModel.fromFirestore)
+                .toList());
   }
 
   /// Lectura única: productos por género.
   Future<List<ProductEntity>> getByGender(String gender) async {
     final snapshot =
         await _collection.where('gender', isEqualTo: gender).get();
-    return snapshot.docs.map(ProductModel.fromFirestore).toList();
+    return snapshot.docs
+        .where((doc) => doc.data()['active'] != false) // Hide inactive
+        .map(ProductModel.fromFirestore)
+        .toList();
   }
 
   /// Lectura única: producto por ID.
   Future<ProductEntity?> getById(String productId) async {
     final doc = await _collection.doc(productId).get();
     if (!doc.exists) return null;
+    if (doc.data()?['active'] == false) return null; // Hide inactive
     return ProductModel.fromFirestore(doc);
   }
 
@@ -45,15 +52,18 @@ class ProductFirestoreDataSource {
         .where('gender', isEqualTo: gender)
         .where('category', isEqualTo: category)
         .get();
-    return snapshot.docs.map(ProductModel.fromFirestore).toList();
+    return snapshot.docs
+        .where((doc) => doc.data()['active'] != false) // Hide inactive
+        .map(ProductModel.fromFirestore)
+        .toList();
   }
 
   /// Búsqueda por nombre (client-side filtering por limitaciones de Firestore).
-  /// Para producción, considerar Algolia o Typesense.
   Future<List<ProductEntity>> search(String query) async {
     final normalizedQuery = query.toLowerCase();
     final snapshot = await _collection.get();
     return snapshot.docs
+        .where((doc) => doc.data()['active'] != false) // Hide inactive
         .map(ProductModel.fromFirestore)
         .where((p) => p.name.toLowerCase().contains(normalizedQuery))
         .toList();
