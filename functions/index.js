@@ -313,24 +313,7 @@ async function getBcvRate() {
     console.warn('DolarAPI euros list failed after retries:', e.message);
   }
 
-  // Source 3 (Fallback): DolarAPI — Dólar oficial BCV (as reference, different currency)
-  try {
-    const res = await fetchWithRetry('https://ve.dolarapi.com/v1/dolares/oficial', {
-      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
-    });
-    if (res) {
-      const data = await res.json();
-      const rate = data?.promedio || data?.precio;
-      if (rate && typeof rate === 'number' && rate > 0) {
-        // This is USD/VES, not EUR/VES — log clearly
-        console.log(`USD/BCV rate from DolarAPI (dolares): ${rate} — NOTE: this is USD not EUR`);
-        return rate;
-      }
-    }
-  } catch (e) {
-    console.warn('DolarAPI dolares failed after retries:', e.message);
-  }
-
+  // Source 3: If both EUR endpoints failed, return null
   return null;
 }
 
