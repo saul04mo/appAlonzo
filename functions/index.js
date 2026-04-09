@@ -371,19 +371,21 @@ exports.scheduledBcvRate = functions.pubsub
     const rate = await getBcvRate();
     if (!rate) {
       console.error('SCHEDULED BCV: All sources failed');
+      // Log failure to history
+      await db.collection('exchangeRateHistory').add({
+        error: 'Todas las fuentes fallaron',
+        method: 'scheduled',
+        updatedBy: 'scheduled',
+        timestamp: FieldValue.serverTimestamp(),
+      });
       return;
     }
 
     const prev = await db.doc('config/exchangeRate').get();
     const prevRate = prev.exists ? prev.data().value : null;
+    const changed = !prevRate || Math.abs(prevRate - rate) >= 0.01;
 
-    // Skip if rate hasn't changed (avoid unnecessary writes)
-    if (prevRate && Math.abs(prevRate - rate) < 0.01) {
-      console.log(`SCHEDULED BCV EUR: No change (${rate})`);
-      return;
-    }
-
-    // ATOMIC: Update rate + log history in one batch
+    // ALWAYS update + log (even if no change, for audit trail)
     const batch = db.batch();
 
     batch.set(db.doc('config/exchangeRate'), {
@@ -400,6 +402,7 @@ exports.scheduledBcvRate = functions.pubsub
       previousRate: prevRate,
       newRate: rate,
       change: prevRate ? rate - prevRate : 0,
+      changed: changed,
       source: 'BCV-EUR',
       method: 'scheduled',
       updatedBy: 'scheduled',
@@ -407,5 +410,5 @@ exports.scheduledBcvRate = functions.pubsub
     });
 
     await batch.commit();
-    console.log(`SCHEDULED BCV EUR: Updated ${prevRate} → ${rate}`);
+    console.log(`SCHEDULED BCV EUR: ${changed ? `Updated ${prevRate} → ${rate}` : `No change (${rate})`}`);
   });
