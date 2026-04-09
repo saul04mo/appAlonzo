@@ -286,48 +286,49 @@ async function getBcvRate() {
       const data = await res.json();
       const rate = data?.promedio || data?.precio;
       if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`EUR/BCV rate from DolarAPI: ${rate}`);
+        console.log(`EUR/BCV rate from DolarAPI (euros): ${rate}`);
         return rate;
       }
     }
   } catch (e) {
-    console.warn('DolarAPI failed after retries:', e.message);
+    console.warn('DolarAPI euros failed after retries:', e.message);
   }
 
-  // Source 2 (Fallback): PyDolarVe — Tasa EURO BCV
+  // Source 2 (Fallback): DolarAPI Venezuela — ALL cotizaciones (different endpoint, same API)
   try {
-    const res = await fetchWithRetry('https://pydolarve.org/api/v1/dollar?page=bcv', {
+    const res = await fetchWithRetry('https://ve.dolarapi.com/v1/euros', {
       headers: { 'User-Agent': 'ALONZO-POS/1.0' },
     });
     if (res) {
       const data = await res.json();
-      const rate = data?.monitors?.eur?.price;
+      // Array of sources — find "oficial"
+      const oficial = Array.isArray(data) ? data.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial') : null;
+      const rate = oficial?.promedio || oficial?.precio;
       if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`EUR/BCV rate from PyDolarVe: ${rate}`);
+        console.log(`EUR/BCV rate from DolarAPI (euros list): ${rate}`);
         return rate;
       }
     }
   } catch (e) {
-    console.warn('PyDolarVe failed after retries:', e.message);
+    console.warn('DolarAPI euros list failed after retries:', e.message);
   }
 
-  // Source 3 (Fallback): alcambio.app
+  // Source 3 (Fallback): DolarAPI — Dólar oficial BCV (as reference, different currency)
   try {
-    const res = await fetchWithRetry('https://api.alcambio.app/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'ALONZO-POS/1.0' },
-      body: JSON.stringify({ query: '{ getRates { BCV { rateEur } } }' }),
+    const res = await fetchWithRetry('https://ve.dolarapi.com/v1/dolares/oficial', {
+      headers: { 'User-Agent': 'ALONZO-POS/1.0' },
     });
     if (res) {
       const data = await res.json();
-      const rate = data?.data?.getRates?.BCV?.rateEur || data?.data?.getRates?.BCV?.rate;
+      const rate = data?.promedio || data?.precio;
       if (rate && typeof rate === 'number' && rate > 0) {
-        console.log(`EUR/BCV rate from AlCambio: ${rate}`);
+        // This is USD/VES, not EUR/VES — log clearly
+        console.log(`USD/BCV rate from DolarAPI (dolares): ${rate} — NOTE: this is USD not EUR`);
         return rate;
       }
     }
   } catch (e) {
-    console.warn('AlCambio failed after retries:', e.message);
+    console.warn('DolarAPI dolares failed after retries:', e.message);
   }
 
   return null;
