@@ -332,8 +332,11 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     return { rate, previousRate: prevRate, updatedAt: new Date().toISOString(), changed: false };
   }
 
+  // ATOMIC: Update rate + log history in one batch (prevents ghost updates without history)
   const now = new Date();
-  await db.doc('config/exchangeRate').set({
+  const batch = db.batch();
+
+  batch.set(db.doc('config/exchangeRate'), {
     value: rate,
     source: 'BCV-EUR',
     currency: 'EUR',
@@ -342,8 +345,7 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     lastCheck: now.toISOString(),
   }, { merge: true });
 
-  // Log to history
-  await db.collection('exchangeRateHistory').add({
+  batch.set(db.collection('exchangeRateHistory').doc(), {
     previousRate: prevRate,
     newRate: rate,
     change: prevRate ? rate - prevRate : 0,
@@ -352,6 +354,8 @@ exports.refreshBcvRate = functions.https.onCall(async (data, context) => {
     updatedBy: context.auth.uid,
     timestamp: FieldValue.serverTimestamp(),
   });
+
+  await batch.commit();
 
   return { rate, previousRate: prevRate, updatedAt: now.toISOString(), changed: true };
 });
@@ -379,7 +383,10 @@ exports.scheduledBcvRate = functions.pubsub
       return;
     }
 
-    await db.doc('config/exchangeRate').set({
+    // ATOMIC: Update rate + log history in one batch
+    const batch = db.batch();
+
+    batch.set(db.doc('config/exchangeRate'), {
       value: rate,
       previousValue: prevRate,
       source: 'BCV-EUR',
@@ -389,8 +396,7 @@ exports.scheduledBcvRate = functions.pubsub
       lastCheck: new Date().toISOString(),
     }, { merge: true });
 
-    // Log to history
-    await db.collection('exchangeRateHistory').add({
+    batch.set(db.collection('exchangeRateHistory').doc(), {
       previousRate: prevRate,
       newRate: rate,
       change: prevRate ? rate - prevRate : 0,
@@ -400,5 +406,6 @@ exports.scheduledBcvRate = functions.pubsub
       timestamp: FieldValue.serverTimestamp(),
     });
 
+    await batch.commit();
     console.log(`SCHEDULED BCV EUR: Updated ${prevRate} → ${rate}`);
   });
