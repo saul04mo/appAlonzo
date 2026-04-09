@@ -246,17 +246,43 @@ exports.validateOrder = functions.firestore
 // ══════════════════════════════════════════════════════════
 
 /**
- * Fetch BCV rate from multiple sources with fallback.
- * Returns the rate as a number or null if all sources fail.
+ * Fetch with retry — retries up to `retries` times on failure.
+ */
+async function fetchWithRetry(url, options = {}, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) return res;
+      if (attempt < retries) {
+        console.warn(`Attempt ${attempt + 1} failed (${res.status}), retrying...`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // 1s, 2s backoff
+      }
+    } catch (e) {
+      if (attempt < retries) {
+        console.warn(`Attempt ${attempt + 1} error: ${e.message}, retrying...`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      } else {
+        throw e;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Fetch BCV rate from multiple sources with fallback + retries.
+ * Each source retries up to 2 times before moving to the next.
  */
 async function getBcvRate() {
   // Source 1 (Primary): DolarAPI Venezuela — Tasa EURO BCV
   try {
-    const res = await fetch('https://ve.dolarapi.com/v1/euros/oficial', {
+    const res = await fetchWithRetry('https://ve.dolarapi.com/v1/euros/oficial', {
       headers: { 'User-Agent': 'ALONZO-POS/1.0' },
-      signal: AbortSignal.timeout(8000),
     });
-    if (res.ok) {
+    if (res) {
       const data = await res.json();
       const rate = data?.promedio || data?.precio;
       if (rate && typeof rate === 'number' && rate > 0) {
@@ -265,16 +291,15 @@ async function getBcvRate() {
       }
     }
   } catch (e) {
-    console.warn('DolarAPI failed:', e.message);
+    console.warn('DolarAPI failed after retries:', e.message);
   }
 
   // Source 2 (Fallback): PyDolarVe — Tasa EURO BCV
   try {
-    const res = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
+    const res = await fetchWithRetry('https://pydolarve.org/api/v1/dollar?page=bcv', {
       headers: { 'User-Agent': 'ALONZO-POS/1.0' },
-      signal: AbortSignal.timeout(8000),
     });
-    if (res.ok) {
+    if (res) {
       const data = await res.json();
       const rate = data?.monitors?.eur?.price;
       if (rate && typeof rate === 'number' && rate > 0) {
@@ -283,18 +308,17 @@ async function getBcvRate() {
       }
     }
   } catch (e) {
-    console.warn('PyDolarVe failed:', e.message);
+    console.warn('PyDolarVe failed after retries:', e.message);
   }
 
   // Source 3 (Fallback): alcambio.app
   try {
-    const res = await fetch('https://api.alcambio.app/graphql', {
+    const res = await fetchWithRetry('https://api.alcambio.app/graphql', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'ALONZO-POS/1.0' },
       body: JSON.stringify({ query: '{ getRates { BCV { rateEur } } }' }),
-      signal: AbortSignal.timeout(8000),
     });
-    if (res.ok) {
+    if (res) {
       const data = await res.json();
       const rate = data?.data?.getRates?.BCV?.rateEur || data?.data?.getRates?.BCV?.rate;
       if (rate && typeof rate === 'number' && rate > 0) {
@@ -303,7 +327,7 @@ async function getBcvRate() {
       }
     }
   } catch (e) {
-    console.warn('AlCambio failed:', e.message);
+    console.warn('AlCambio failed after retries:', e.message);
   }
 
   return null;
